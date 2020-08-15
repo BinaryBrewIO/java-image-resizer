@@ -24,32 +24,27 @@
  * 
  * ------------------------------------------------------------------------ */
 
-import java.io.File;
-
 import javax.imageio.ImageIO;
-
+import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.awt.Image;
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.Rectangle;
+import java.io.File;
 
 class ImageResizeUtil {
 
     private static String IMAGE_TYPE = "jpg";
-
     private static String ORIGINAL_IMAGE = "./mk.jpg";
 
-    private final static String ROOT_PATH = "./thumb/";
-    private final static String SQUARE_CENTERED_IMAGE_NAME = "thumb-square-centered";
-    private final static String SQUARE_FULL_TRANSPARENT_IMAGE_NAME = "thumb-square-full-transparent";
-    private final static String SQUARE_FULL_BGCOLOR_IMAGE_NAME = "thumb-square-full-bg-color";
-    private final static String ASPECT_RATIO_IMAGE_NAME = "thumb-aspect-ratio";
-    private final static String FIXED_WIDTH_IMAGE_NAME = "thumb-fixed-width";
-    private final static String FIXED_HEIGHT_IMAGE_NAME = "thumb-fixed-height";
-    private final static String STRETCHED_IMAGE_NAME = "thumb-stretched";
+    private static final String ROOT_PATH = "./thumb/";
+    private static final String RESIZE_FROM_CENTER_IMAGE_NAME = "thumb-resize-from-center";
+    private static final String SQUARE_CENTERED_IMAGE_NAME = "thumb-square-centered";
+    private static final String SQUARE_FULL_TRANSPARENT_IMAGE_NAME = "thumb-square-full-transparent";
+    private static final String SQUARE_FULL_BGCOLOR_IMAGE_NAME = "thumb-square-full-bg-color";
+    private static final String ASPECT_RATIO_IMAGE_NAME = "thumb-aspect-ratio";
+    private static final String FIXED_WIDTH_IMAGE_NAME = "thumb-fixed-width";
+    private static final String FIXED_HEIGHT_IMAGE_NAME = "thumb-fixed-height";
+    private static final String STRETCHED_IMAGE_NAME = "thumb-stretched";
 
-    private final static int SQUARE_SIZE = 256;
+    private static final int SQUARE_SIZE = 256;
 
     public static void main(String[] args) {
         try {
@@ -64,23 +59,27 @@ class ImageResizeUtil {
             File imageFile = new File(ORIGINAL_IMAGE);
             BufferedImage bufferImage = ImageIO.read(imageFile);
             String IMAGE_NAME_PREFIX = imageFile.getName().substring(0, imageFile.getName().lastIndexOf('.')) + '-';
-            
-            // pefect square image from center of an image (cropped image)
+
+            // resize image from center (cropped image), given size must be smaller than original file size
+            BufferedImage resizeFromCenter = resizeFromCenter(bufferImage, 900, 450);
+            saveImage(resizeFromCenter, IMAGE_TYPE, IMAGE_NAME_PREFIX + RESIZE_FROM_CENTER_IMAGE_NAME);
+
+            // perfect square image from center of an image (cropped image)
             BufferedImage squreImage = resizeToSquare(bufferImage, SQUARE_SIZE, false, null, false);
             saveImage(squreImage, IMAGE_TYPE, IMAGE_NAME_PREFIX + SQUARE_CENTERED_IMAGE_NAME);
-            
+
             // resized full image to square, considering aspect ratio & set its background to given color
             BufferedImage squreImageFC = resizeToSquare(bufferImage, SQUARE_SIZE, true, Color.WHITE, false);
             saveImage(squreImageFC, IMAGE_TYPE, IMAGE_NAME_PREFIX + SQUARE_FULL_BGCOLOR_IMAGE_NAME);
-            
+
             // resize image in %
             BufferedImage imageWithAspectRatio = resizeToPercentageWithAspectRatio(bufferImage, 25);
             saveImage(imageWithAspectRatio, IMAGE_TYPE, IMAGE_NAME_PREFIX + ASPECT_RATIO_IMAGE_NAME);
-            
+
             // resize image with fixed width
             BufferedImage imageWithFixedWidth = resizeToFixedWidthWithAspectRatio(bufferImage, 150);
             saveImage(imageWithFixedWidth, IMAGE_TYPE, IMAGE_NAME_PREFIX + FIXED_WIDTH_IMAGE_NAME);
-            
+
             // resize image with fixed height
             BufferedImage imageWithFixedHeight = resizeToFixedHeightWithAspectRatio(bufferImage, 400);
             saveImage(imageWithFixedHeight, IMAGE_TYPE, IMAGE_NAME_PREFIX + FIXED_HEIGHT_IMAGE_NAME);
@@ -88,7 +87,7 @@ class ImageResizeUtil {
             // resize by stratching image (no one's gonna use it anyway)
             BufferedImage stretchedImage = resizeMe(bufferImage, SQUARE_SIZE, SQUARE_SIZE);
             saveImage(stretchedImage, IMAGE_TYPE, IMAGE_NAME_PREFIX + STRETCHED_IMAGE_NAME);
-            
+
             // tranceparent image with full image resized
             IMAGE_TYPE = "png";
             BufferedImage squreImageFT = resizeToSquare(bufferImage, SQUARE_SIZE, true, null, true);
@@ -152,10 +151,20 @@ class ImageResizeUtil {
         Rectangle imgDimension = getSquareDimension(bufferImage);
         // crop image of square dimension
         BufferedImage croppedImg = bufferImage.getSubimage(imgDimension.x, imgDimension.y, imgDimension.width, imgDimension.height);
-        // reduce the size of the square as needed
-        BufferedImage squareImage = resizeMe(croppedImg, imageSize, imageSize);
-        // return image
-        return squareImage;
+        // reduce the size of the square as needed & return
+        return resizeMe(croppedImg, imageSize, imageSize);
+    }
+
+    private static BufferedImage resizeFromCenter(BufferedImage bufferImage, int width, int height) {
+        if (bufferImage.getHeight() < height || bufferImage.getWidth() < width) {
+            // image is smaller than resize values
+            System.out.println("Image is smaller than expected!");
+            return null;
+        }
+
+        int xPos = (bufferImage.getWidth()-width)/2;
+        int yPos = (bufferImage.getHeight()-height)/2;
+        return bufferImage.getSubimage(xPos, yPos, width, height);
     }
 
     private static BufferedImage resizeToPercentageWithAspectRatio(BufferedImage bufferImage, double percent) {
